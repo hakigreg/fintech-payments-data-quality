@@ -8,20 +8,28 @@ The platform deploys data-quality controls at the financial boundaries of a dail
 
 ```mermaid
 flowchart TD
-    A[Synthetic payment events] --> B[Raw Parquet]
-    B --> C[Soda intake contract]
-    C -->|pass| D[Consolidated payment transactions]
-    C -->|fail| Q[Quarantine and evidence]
-    D --> E[Soda transaction contract]
-    E -->|pass| F[Double-entry ledger]
-    E -->|fail| Q
-    F --> G[Soda ledger contract]
-    G -->|pass| H[Merchant settlements]
-    G -->|fail| Q
-    H --> I[Soda settlement contract]
-    I -->|pass| J[Trusted Parquet data products]
-    I -->|fail| Q
+    A[Synthetic payment events] --> B[Build isolated candidate snapshot]
+    B --> R[Raw payment events]
+    B --> T[Consolidated transactions]
+    B --> L[Double-entry ledger]
+    B --> S[Merchant settlements]
+    R --> RC[Soda intake contract]
+    T --> TC[Soda transaction contract]
+    L --> LC[Soda accounting contract]
+    S --> SC[Soda settlement contract]
+    RC --> G{All contracts pass?}
+    TC --> G
+    LC --> G
+    SC --> G
+    G -->|yes| P[Trusted Parquet data products]
+    G -->|no| E[Publication blocked and evidence retained]
+    E --> Q[Quarantine when defects are row-addressable]
 ```
+
+The contracts are validation boundaries, not sequential orchestration checkpoints. The complete
+candidate snapshot is built inside an isolated run so that every contract can be evaluated and the
+full decision evidence can be retained. No trusted Parquet product is published unless all four
+contracts pass.
 
 ## Components
 
@@ -42,11 +50,16 @@ Date columns are written as Hive-style directory partitions.
 
 ### DuckDB
 
-DuckDB loads the Parquet inputs and performs SQL transformations. A persistent database is created for every scenario so that Soda can inspect the exact tables used by the pipeline and reviewers can investigate them independently.
+DuckDB loads the Parquet inputs and performs SQL transformations. A persistent database is created
+for every scenario so that Soda can inspect the exact candidate tables used by the pipeline and
+reviewers can investigate them independently. The internal `trusted` schema contains the candidate
+ledger and settlement models; within the isolated database, the schema name identifies their target
+layer rather than their publication status. Publication occurs only when those tables are exported
+to trusted Parquet storage after quality approval.
 
 ### Soda Core
 
-Four Git-managed contracts enforce quality at business boundaries:
+Four Git-managed contracts evaluate quality at business boundaries:
 
 1. Raw payment event intake.
 2. Consolidated transaction state.
@@ -57,7 +70,10 @@ Contracts use standard checks for schema, missing values, uniqueness, validity, 
 
 ### Quality gate
 
-The gate is fail closed. Trusted Parquet output is exported only when every contract passes. Soda evaluates quality; the pipeline owns the release decision.
+The gate aggregates all contract outcomes and fails closed. Trusted Parquet output is exported only
+when every contract passes. Soda evaluates quality; the pipeline owns the release decision. Failed
+runs always retain evidence, while quarantine output is produced only for defects that can be tied
+to individual source rows.
 
 ## Reproducibility
 

@@ -14,25 +14,25 @@ The repository is fully reproducible. It requires no cloud account, external dat
 
 A technically successful payment pipeline can still produce financially incorrect data. Duplicate captures, invalid payment transitions, unbalanced ledger entries, and settlement mismatches can pass unnoticed when pipelines validate only execution status.
 
-This project treats data quality as a release control:
+This project treats data quality as a release control. It builds an isolated candidate
+snapshot, evaluates four business boundaries with Soda Core, and aggregates their outcomes
+into one fail-closed publication decision:
 
 ```text
 Synthetic payment events
           │
           ▼
-Raw Parquet ── Soda intake gate
+Isolated candidate snapshot
+├── Raw payment events ─────────── Soda intake contract
+├── Consolidated transactions ─── Soda transaction contract
+├── Double-entry ledger ────────── Soda accounting contract
+└── Merchant settlements ───────── Soda settlement contract
           │
           ▼
-Consolidated transactions ── Soda transaction gate
-          │
-          ▼
-Double-entry ledger ── Soda accounting gate
-          │
-          ▼
-Merchant settlements ── Soda settlement gate
-          │
-          ├── PASS ──▶ Trusted Parquet data products
-          └── FAIL ──▶ Publication blocked + evidence + quarantine
+Aggregated publication gate
+├── PASS ──▶ Trusted Parquet data products
+└── FAIL ──▶ Publication blocked + evidence
+              └── Quarantine when defects are row-addressable
 ```
 
 ## What it implements
@@ -126,7 +126,9 @@ build/runs/green/
 └── fintech.duckdb
 ```
 
-Trusted Parquet files are written only after every Soda contract passes. Failure scenarios retain evidence but do not publish trusted outputs.
+The DuckDB snapshot contains candidate tables for Soda to inspect. Trusted Parquet files are
+written only after every contract passes. Failure scenarios retain evidence, produce quarantine
+output when invalid source rows can be identified individually, and never publish trusted outputs.
 
 ## Repository guide
 
