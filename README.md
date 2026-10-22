@@ -82,7 +82,7 @@ make test
 make lint
 ```
 
-## Quality controls
+## Key quality controls
 
 | Control | Business rule | Quality dimension | Gate |
 |---|---|---|---|
@@ -93,7 +93,8 @@ make lint
 | `FIN-LEDGER-001` | Debits and credits must balance for every payment | Financial integrity | Block |
 | `FIN-SETTLE-001` | Net settlement must equal captures minus refunds and fees | Financial integrity | Block |
 
-See the complete [control catalog](docs/control-catalog.md).
+See the complete [governed control catalog](docs/control-catalog.md), including ownership,
+contract mapping, response, and failure-scenario traceability.
 
 ## Scenarios
 

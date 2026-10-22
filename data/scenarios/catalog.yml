@@ -4,33 +4,41 @@ scenarios:
     purpose: Prove that valid payment, ledger, and settlement data is published.
   - id: duplicate-capture
     expected_gate: blocked
-    control: FIN-PAY-001
+    expected_contract: raw_payment_events.yml
+    expected_control: FIN-PAY-001
     risk: A merchant or customer is financially impacted by processing a capture twice.
   - id: invalid-state-transition
     expected_gate: blocked
-    control: FIN-TXN-001
+    expected_contract: payment_transactions.yml
+    expected_control: FIN-TXN-001
     risk: A declined or unauthorized payment reaches financial processing.
   - id: missing-merchant
     expected_gate: blocked
-    control: FIN-PAY-002
+    expected_contract: raw_payment_events.yml
+    expected_control: FIN-PAY-002
     risk: A financial event cannot be assigned to a known merchant.
   - id: refund-over-capture
     expected_gate: blocked
-    control: FIN-TXN-002
+    expected_contract: payment_transactions.yml
+    expected_control: FIN-TXN-002
     risk: Refunds exceed the amount originally captured.
   - id: late-event
     expected_gate: blocked
-    control: payment-event-sla
+    expected_contract: raw_payment_events.yml
+    expected_control: FIN-PAY-SLA
     risk: Late events produce incomplete daily financial results.
   - id: unbalanced-ledger
     expected_gate: blocked
-    control: FIN-LEDGER-001
+    expected_contract: ledger_entries.yml
+    expected_control: FIN-LEDGER-001
     risk: Debits and credits do not conserve money.
   - id: settlement-mismatch
     expected_gate: blocked
-    control: FIN-SETTLE-001
+    expected_contract: merchant_settlements.yml
+    expected_control: FIN-SETTLE-001
     risk: The merchant payout differs from captured payments, refunds, and fees.
   - id: schema-drift
     expected_gate: blocked
-    control: payment-event-schema
+    expected_contract: raw_payment_events.yml
+    expected_control: FIN-SCHEMA-001
     risk: An unreviewed upstream schema change reaches downstream consumers.

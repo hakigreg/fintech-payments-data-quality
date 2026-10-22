@@ -78,6 +78,7 @@ checks:
         criticality: critical
   - failed_rows:
       name: Payment events must arrive within the 24-hour SLA
+      qualifier: FIN-PAY-SLA
       expression: ingestion_timestamp > event_timestamp + INTERVAL '24 hours'
       attributes:
         dimension: timeliness
