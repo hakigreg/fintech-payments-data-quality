@@ -1,0 +1,107 @@
+dataset: duckdb/fintech/trusted/merchant_settlements
+
+check_attributes:
+  domain: finance
+  data_product: merchant_settlements
+  owner: finance_operations
+
+checks:
+  - metric:
+      name: Settlement schema must remain compatible
+      qualifier: FIN-SCHEMA-004
+      query: |
+        WITH expected(column_name, data_type) AS (
+          VALUES
+            ('settlement_id', 'VARCHAR'), ('merchant_id', 'VARCHAR'),
+            ('currency', 'VARCHAR'), ('settlement_date', 'DATE'),
+            ('gross_captured_amount', 'DECIMAL(18,2)'),
+            ('refunded_amount', 'DECIMAL(18,2)'), ('fee_amount', 'DECIMAL(18,2)'),
+            ('net_settlement_amount', 'DECIMAL(18,2)'), ('payment_count', 'BIGINT'),
+            ('settlement_status', 'VARCHAR')
+        ), actual AS (
+          SELECT column_name, upper(data_type) AS data_type
+          FROM information_schema.columns
+          WHERE table_catalog = 'fintech'
+            AND table_schema = 'trusted'
+            AND table_name = 'merchant_settlements'
+        )
+        SELECT COUNT(*)
+        FROM expected e
+        FULL OUTER JOIN actual a USING (column_name)
+        WHERE e.column_name IS NULL OR a.column_name IS NULL OR e.data_type <> a.data_type
+      threshold:
+        must_be: 0
+      attributes:
+        dimension: schema
+        criticality: critical
+  - row_count:
+      name: Daily settlement batch must not be empty
+      threshold:
+        must_be_greater_than: 0
+  - duplicate:
+      name: Merchant settlement must be unique by date and currency
+      columns: [merchant_id, currency, settlement_date]
+  - failed_rows:
+      name: Net settlement must equal captures minus refunds and fees
+      qualifier: FIN-SETTLE-001
+      expression: >-
+        ABS(net_settlement_amount -
+        (gross_captured_amount - refunded_amount - fee_amount)) > 0.001
+      attributes:
+        dimension: financial_integrity
+        criticality: critical
+        control_type: settlement
+  - failed_rows:
+      name: Merchant settlement must never be negative
+      qualifier: FIN-SETTLE-002
+      expression: net_settlement_amount < 0
+      attributes:
+        dimension: validity
+        criticality: critical
+
+columns:
+  - name: settlement_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - duplicate:
+  - name: merchant_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+  - name: currency
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - invalid:
+          valid_values: [USD, EUR, ARS]
+  - name: settlement_date
+    data_type: DATE
+    checks:
+      - missing:
+  - name: gross_captured_amount
+    data_type: DECIMAL(18,2)
+    checks:
+      - missing:
+  - name: refunded_amount
+    data_type: DECIMAL(18,2)
+    checks:
+      - missing:
+  - name: fee_amount
+    data_type: DECIMAL(18,2)
+    checks:
+      - missing:
+  - name: net_settlement_amount
+    data_type: DECIMAL(18,2)
+    checks:
+      - missing:
+  - name: payment_count
+    data_type: BIGINT
+    checks:
+      - missing:
+  - name: settlement_status
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - invalid:
+          valid_values: [pending_quality_approval]

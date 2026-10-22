@@ -1,0 +1,127 @@
+dataset: duckdb/fintech/conformed/payment_transactions
+
+check_attributes:
+  domain: payments
+  data_product: payment_transactions
+  owner: payment_operations
+
+checks:
+  - metric:
+      name: Consolidated transaction schema must remain compatible
+      qualifier: FIN-SCHEMA-002
+      query: |
+        WITH expected(column_name, data_type) AS (
+          VALUES
+            ('payment_id', 'VARCHAR'), ('merchant_id', 'VARCHAR'), ('currency', 'VARCHAR'),
+            ('payment_status', 'VARCHAR'), ('initiated_at', 'TIMESTAMP'),
+            ('authorized_at', 'TIMESTAMP'), ('captured_at', 'TIMESTAMP'),
+            ('declined_at', 'TIMESTAMP'), ('last_refund_at', 'TIMESTAMP'),
+            ('captured_amount', 'DECIMAL(18,2)'), ('refunded_amount', 'DECIMAL(18,2)'),
+            ('fee_amount', 'DECIMAL(18,2)'), ('initiated_count', 'BIGINT'),
+            ('authorization_count', 'BIGINT'), ('capture_count', 'BIGINT'),
+            ('decline_count', 'BIGINT'), ('refund_count', 'BIGINT'),
+            ('processing_date', 'DATE')
+        ), actual AS (
+          SELECT column_name, upper(data_type) AS data_type
+          FROM information_schema.columns
+          WHERE table_catalog = 'fintech'
+            AND table_schema = 'conformed'
+            AND table_name = 'payment_transactions'
+        )
+        SELECT COUNT(*)
+        FROM expected e
+        FULL OUTER JOIN actual a USING (column_name)
+        WHERE e.column_name IS NULL OR a.column_name IS NULL OR e.data_type <> a.data_type
+      threshold:
+        must_be: 0
+      attributes:
+        dimension: schema
+        criticality: critical
+  - row_count:
+      name: Consolidated transaction batch must not be empty
+      threshold:
+        must_be_greater_than: 0
+  - failed_rows:
+      name: Payment state transitions must be valid
+      qualifier: FIN-TXN-001
+      expression: >-
+        capture_count > 1
+        OR (capture_count > 0 AND authorization_count = 0)
+        OR (capture_count > 0 AND decline_count > 0)
+      attributes:
+        dimension: consistency
+        criticality: critical
+        control_type: financial
+  - failed_rows:
+      name: Total refunds must not exceed the captured amount
+      qualifier: FIN-TXN-002
+      expression: refunded_amount > captured_amount
+      attributes:
+        dimension: financial_integrity
+        criticality: critical
+        control_type: financial
+  - failed_rows:
+      name: Captured transactions must have a calculated processing fee
+      qualifier: FIN-TXN-003
+      expression: capture_count > 0 AND fee_amount IS NULL
+      attributes:
+        dimension: completeness
+        criticality: critical
+
+columns:
+  - name: payment_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - duplicate:
+  - name: merchant_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+  - name: currency
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - invalid:
+          valid_values: [USD, EUR, ARS]
+  - name: payment_status
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - invalid:
+          valid_values: [initiated, authorized, captured, declined, partially_refunded, refunded]
+  - name: initiated_at
+    data_type: TIMESTAMP
+    checks:
+      - missing:
+  - name: authorized_at
+    data_type: TIMESTAMP
+  - name: captured_at
+    data_type: TIMESTAMP
+  - name: declined_at
+    data_type: TIMESTAMP
+  - name: last_refund_at
+    data_type: TIMESTAMP
+  - name: captured_amount
+    data_type: DECIMAL(18,2)
+  - name: refunded_amount
+    data_type: DECIMAL(18,2)
+    checks:
+      - invalid:
+          valid_min: 0
+  - name: fee_amount
+    data_type: DECIMAL(18,2)
+  - name: initiated_count
+    data_type: BIGINT
+  - name: authorization_count
+    data_type: BIGINT
+  - name: capture_count
+    data_type: BIGINT
+  - name: decline_count
+    data_type: BIGINT
+  - name: refund_count
+    data_type: BIGINT
+  - name: processing_date
+    data_type: DATE
+    checks:
+      - missing:

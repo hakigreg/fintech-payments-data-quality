@@ -1,0 +1,98 @@
+dataset: duckdb/fintech/trusted/ledger_entries
+
+check_attributes:
+  domain: finance
+  data_product: payment_ledger
+  owner: finance_operations
+
+checks:
+  - metric:
+      name: Ledger schema must remain compatible
+      qualifier: FIN-SCHEMA-003
+      query: |
+        WITH expected(column_name, data_type) AS (
+          VALUES
+            ('ledger_entry_id', 'VARCHAR'), ('payment_id', 'VARCHAR'),
+            ('merchant_id', 'VARCHAR'), ('account_code', 'VARCHAR'),
+            ('entry_type', 'VARCHAR'), ('amount', 'DECIMAL(18,2)'),
+            ('currency', 'VARCHAR'), ('accounting_date', 'DATE')
+        ), actual AS (
+          SELECT column_name, upper(data_type) AS data_type
+          FROM information_schema.columns
+          WHERE table_catalog = 'fintech'
+            AND table_schema = 'trusted'
+            AND table_name = 'ledger_entries'
+        )
+        SELECT COUNT(*)
+        FROM expected e
+        FULL OUTER JOIN actual a USING (column_name)
+        WHERE e.column_name IS NULL OR a.column_name IS NULL OR e.data_type <> a.data_type
+      threshold:
+        must_be: 0
+      attributes:
+        dimension: schema
+        criticality: critical
+  - row_count:
+      name: Ledger must contain entries for captured payments
+      threshold:
+        must_be_greater_than: 0
+  - metric:
+      name: Every payment ledger must balance debits and credits
+      qualifier: FIN-LEDGER-001
+      query: |
+        SELECT COUNT(*)
+        FROM (
+          SELECT payment_id, currency
+          FROM fintech.trusted.ledger_entries
+          GROUP BY payment_id, currency
+          HAVING ABS(SUM(CASE WHEN entry_type = 'debit' THEN amount ELSE -amount END)) > 0.001
+        ) unbalanced_payments
+      threshold:
+        must_be: 0
+      attributes:
+        dimension: financial_integrity
+        criticality: critical
+        control_type: accounting
+
+columns:
+  - name: ledger_entry_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - duplicate:
+  - name: payment_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+  - name: merchant_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+  - name: account_code
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - invalid:
+          valid_values: [processor_clearing, merchant_payable, fee_revenue]
+  - name: entry_type
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - invalid:
+          valid_values: [debit, credit]
+  - name: amount
+    data_type: DECIMAL(18,2)
+    checks:
+      - missing:
+      - invalid:
+          valid_min: 0.01
+  - name: currency
+    data_type: VARCHAR
+    checks:
+      - missing:
+      - invalid:
+          valid_values: [USD, EUR, ARS]
+  - name: accounting_date
+    data_type: DATE
+    checks:
+      - missing:

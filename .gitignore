@@ -1,0 +1,11 @@
+.venv/
+.bootstrap-venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+build/
+data-lake/
+*.duckdb
+.DS_Store

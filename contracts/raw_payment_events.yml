@@ -1,0 +1,147 @@
+dataset: duckdb/fintech/raw/payment_events
+
+check_attributes:
+  domain: payments
+  data_product: payment_events
+  owner: payment_operations
+
+checks:
+  - metric:
+      name: Payment event schema must remain compatible
+      qualifier: FIN-SCHEMA-001
+      query: |
+        WITH expected(column_name, data_type, ordinal_position) AS (
+          VALUES
+            ('event_id', 'VARCHAR', 1),
+            ('payment_id', 'VARCHAR', 2),
+            ('merchant_id', 'VARCHAR', 3),
+            ('event_type', 'VARCHAR', 4),
+            ('amount', 'DECIMAL(18,2)', 5),
+            ('currency', 'VARCHAR', 6),
+            ('event_timestamp', 'TIMESTAMP', 7),
+            ('ingestion_timestamp', 'TIMESTAMP', 8),
+            ('source_system', 'VARCHAR', 9),
+            ('ingestion_date', 'DATE', 10)
+        ), actual AS (
+          SELECT column_name, upper(data_type) AS data_type, ordinal_position
+          FROM information_schema.columns
+          WHERE table_catalog = 'fintech'
+            AND table_schema = 'raw'
+            AND table_name = 'payment_events'
+        )
+        SELECT COUNT(*)
+        FROM expected e
+        FULL OUTER JOIN actual a USING (column_name)
+        WHERE e.column_name IS NULL
+           OR a.column_name IS NULL
+           OR e.data_type <> a.data_type
+           OR e.ordinal_position <> a.ordinal_position
+      threshold:
+        must_be: 0
+      attributes:
+        dimension: schema
+        criticality: critical
+  - row_count:
+      name: Daily payment event batch must not be empty
+      threshold:
+        must_be_greater_than: 0
+  - metric:
+      name: A payment must not be captured more than once
+      qualifier: FIN-PAY-001
+      query: |
+        SELECT COUNT(*)
+        FROM (
+          SELECT payment_id
+          FROM fintech.raw.payment_events
+          WHERE event_type = 'captured'
+          GROUP BY payment_id
+          HAVING COUNT(*) > 1
+        ) duplicated_captures
+      threshold:
+        must_be: 0
+      attributes:
+        dimension: uniqueness
+        criticality: critical
+        control_type: financial
+  - metric:
+      name: Every payment event must reference a known merchant
+      qualifier: FIN-PAY-002
+      query: |
+        SELECT COUNT(*)
+        FROM fintech.raw.payment_events e
+        LEFT JOIN fintech.raw.merchants m USING (merchant_id)
+        WHERE m.merchant_id IS NULL
+      threshold:
+        must_be: 0
+      attributes:
+        dimension: referential_integrity
+        criticality: critical
+  - failed_rows:
+      name: Payment events must arrive within the 24-hour SLA
+      expression: ingestion_timestamp > event_timestamp + INTERVAL '24 hours'
+      attributes:
+        dimension: timeliness
+        criticality: high
+
+columns:
+  - name: event_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+          name: Event identifier is required
+      - duplicate:
+          name: Event identifier must be unique
+  - name: payment_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+          name: Payment identifier is required
+  - name: merchant_id
+    data_type: VARCHAR
+    checks:
+      - missing:
+          name: Merchant identifier is required
+  - name: event_type
+    data_type: VARCHAR
+    checks:
+      - missing:
+          name: Event type is required
+      - invalid:
+          name: Event type must belong to the payment lifecycle
+          valid_values: [initiated, authorized, captured, declined, refunded]
+  - name: amount
+    data_type: DECIMAL(18,2)
+    checks:
+      - missing:
+          name: Event amount is required
+      - invalid:
+          name: Event amount must be positive
+          valid_min: 0.01
+  - name: currency
+    data_type: VARCHAR
+    checks:
+      - missing:
+          name: Currency is required
+      - invalid:
+          name: Currency must be supported by the platform
+          valid_values: [USD, EUR, ARS]
+  - name: event_timestamp
+    data_type: TIMESTAMP
+    checks:
+      - missing:
+          name: Event timestamp is required
+  - name: ingestion_timestamp
+    data_type: TIMESTAMP
+    checks:
+      - missing:
+          name: Ingestion timestamp is required
+  - name: source_system
+    data_type: VARCHAR
+    checks:
+      - missing:
+          name: Source system is required for traceability
+  - name: ingestion_date
+    data_type: DATE
+    checks:
+      - missing:
+          name: Ingestion partition date is required
