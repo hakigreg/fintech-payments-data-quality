@@ -110,6 +110,19 @@ contract mapping, response, and failure-scenario traceability.
 | `settlement-mismatch` | Block | Merchant settlement arithmetic must reconcile |
 | `schema-drift` | Block | Unreviewed upstream fields are rejected |
 
+## Evidence preview
+
+Representative evidence is committed so reviewers can inspect the gate behavior without running
+the project:
+
+| Scenario | Gate | Contract outcome | Publication outcome |
+|---|---:|---|---|
+| `green` | PASS | All four Soda contracts pass | Trusted ledger and settlement Parquet files published |
+| `unbalanced-ledger` | BLOCK | `ledger_entries.yml` fails | No trusted Parquet files published |
+
+See the [evidence snapshot](docs/evidence.md) for contract results, selected Soda output,
+machine-readable JSON excerpts, and dataset metrics.
+
 ## Generated artifacts
 
 Each run is isolated under `build/runs/<scenario>/`:
@@ -149,6 +162,7 @@ Start with:
 - [Data quality strategy](docs/data-quality-strategy.md)
 - [Control catalog](docs/control-catalog.md)
 - [Scenario guide](docs/scenarios.md)
+- [Evidence snapshot](docs/evidence.md)
 
 ## Design boundaries
 
