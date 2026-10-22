@@ -47,6 +47,23 @@ Aggregated publication gate
 - CI tests proving that valid data passes and defective scenarios are blocked at the expected
   contract boundary.
 
+## Suggested review path
+
+For a focused assessment of the project, follow this sequence:
+
+1. **Observe the outcome:** start with the committed [evidence snapshot](docs/evidence.md) to compare
+   a successful publication with a blocked financial defect—no local setup required.
+2. **Inspect the Soda implementation:** open the [data contracts](contracts/), especially the
+   [ledger balance contract](contracts/ledger_entries.yml), to see executable business rules and
+   their thresholds.
+3. **Follow control traceability:** use the [control catalog](docs/control-catalog.md) to connect each
+   governed control to its contract, dataset, quality dimension, owner, response, and test scenario.
+4. **Understand the publication gate:** read the [architecture](docs/architecture.md), then inspect
+   the [Soda execution and evidence code](src/fintech_payments_dq/quality.py) and the
+   [fail-closed runner](src/fintech_payments_dq/runner.py).
+5. **Verify automated assurance:** review the [integration tests](tests/test_quality_integration.py)
+   and the [CI workflow](.github/workflows/ci.yml), whose current result is shown by the badge above.
+
 ## Quickstart
 
 Prerequisites:
@@ -156,13 +173,10 @@ tests/                      Unit and Soda integration tests
 .github/workflows/          Reproducibility and quality CI
 ```
 
-Start with:
+Additional documentation:
 
-- [Architecture](docs/architecture.md)
 - [Data quality strategy](docs/data-quality-strategy.md)
-- [Control catalog](docs/control-catalog.md)
 - [Scenario guide](docs/scenarios.md)
-- [Evidence snapshot](docs/evidence.md)
 
 ## Design boundaries
 
