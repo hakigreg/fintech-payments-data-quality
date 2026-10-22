@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "fintech-payments-data-quality"
 version = "0.1.0"
-description = "Production-oriented data quality controls for fintech payments using Soda, DuckDB, and Parquet."
+description = "Production-oriented data quality controls for fintech payments using Soda Core, DuckDB, and Parquet."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 license = { text = "MIT" }

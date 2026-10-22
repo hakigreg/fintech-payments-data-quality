@@ -1,12 +1,12 @@
-# Fintech Payments: Data Quality Controls with Soda
+# Fintech Payments: Data Quality Controls with Soda Core
 
 [![CI](https://github.com/hakigreg/fintech-payments-data-quality/actions/workflows/ci.yml/badge.svg)](https://github.com/hakigreg/fintech-payments-data-quality/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB.svg)](https://www.python.org/)
-[![Soda](https://img.shields.io/badge/data%20quality-Soda-00AEEF.svg)](https://www.soda.io/)
+[![Soda Core](https://img.shields.io/badge/data%20quality-Soda_Core-00AEEF.svg)](https://www.soda.io/)
 [![DuckDB](https://img.shields.io/badge/analytics-DuckDB-FFF000.svg)](https://duckdb.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Production-oriented data-quality deployment using Soda to protect payment transactions, double-entry ledger entries, and merchant settlements with executable controls.
+Production-oriented data-quality deployment using Soda Core to protect payment transactions, double-entry ledger entries, and merchant settlements with executable controls.
 
 The repository is fully reproducible. It requires no cloud account, external database, API keys, Docker, or proprietary service. DuckDB provides the analytical execution engine, Parquet provides persistent partitioned storage, and Soda Core v4 enforces quality contracts at each financial boundary.
 
