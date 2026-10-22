@@ -27,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    demo = subparsers.add_parser("demo", help="Run the green path and core failure scenarios.")
+    demo = subparsers.add_parser("demo", help="Run the complete quality scenario catalog.")
     demo.add_argument("--as-of", type=_parse_date, default=_today_utc())
     demo.add_argument("--seed", type=int, default=42)
 
@@ -58,14 +58,7 @@ def main() -> int:
     if args.command == "scenario":
         return 0 if _run_scenario(Scenario(args.name), args.as_of, args.seed) else 1
 
-    scenarios = (
-        Scenario.GREEN,
-        Scenario.DUPLICATE_CAPTURE,
-        Scenario.INVALID_STATE_TRANSITION,
-        Scenario.UNBALANCED_LEDGER,
-        Scenario.SETTLEMENT_MISMATCH,
-    )
-    outcomes = [_run_scenario(item, args.as_of, args.seed) for item in scenarios]
+    outcomes = [_run_scenario(item, args.as_of, args.seed) for item in Scenario]
     return 0 if all(outcomes) else 1
 
 

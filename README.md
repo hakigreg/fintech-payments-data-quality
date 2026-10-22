@@ -1,7 +1,7 @@
 # Fintech Payments: Data Quality Controls with Soda
 
 [![CI](https://github.com/hakigreg/fintech-payments-data-quality/actions/workflows/ci.yml/badge.svg)](https://github.com/hakigreg/fintech-payments-data-quality/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB.svg)](https://www.python.org/)
 [![Soda](https://img.shields.io/badge/data%20quality-Soda-00AEEF.svg)](https://www.soda.io/)
 [![DuckDB](https://img.shields.io/badge/analytics-DuckDB-FFF000.svg)](https://duckdb.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -79,7 +79,8 @@ uv sync --extra dev
 uv run fintech-dq demo --as-of 2026-10-21
 ```
 
-The demo runs one valid path and four controlled failure scenarios. Each scenario succeeds only when the observed quality-gate result matches the expected result.
+The demo runs one valid path and all eight controlled failure scenarios. Each scenario succeeds only
+when the observed quality-gate result matches the expected result.
 
 Run one scenario:
 
