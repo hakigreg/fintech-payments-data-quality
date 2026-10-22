@@ -44,7 +44,8 @@ Aggregated publication gate
 - Deterministic synthetic data and controlled failure injection.
 - Quality gates that prevent invalid financial data from being published.
 - Machine-readable JSON evidence and reviewer-friendly Markdown summaries.
-- CI tests proving that valid data passes and defective data is rejected for the expected reason.
+- CI tests proving that valid data passes and defective scenarios are blocked at the expected
+  contract boundary.
 
 ## Quickstart
 
